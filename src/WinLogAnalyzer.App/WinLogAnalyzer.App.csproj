@@ -1,19 +1,21 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <RootNamespace>WinLogAnalyzer.Api</RootNamespace>
-    <AssemblyName>WinLogAnalyzer.Api</AssemblyName>
+    <RootNamespace>WinLogAnalyzer.App</RootNamespace>
+    <AssemblyName>WinLogAnalyzer</AssemblyName>
 
     <!-- Single-file self-contained publish -->
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SelfContained>true</SelfContained>
     <PublishSingleFile>true</PublishSingleFile>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableComHosting>false</EnableComHosting>
 
-    <!-- Manifest admin -->
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
 
@@ -21,9 +23,8 @@
     <ProjectReference Include="..\WinLogAnalyzer.Core\WinLogAnalyzer.Core.csproj" />
   </ItemGroup>
 
-  <!-- data/ : copie a cote du binaire (wwwroot gere implicitement par le Web SDK) -->
   <ItemGroup>
-    <Content Update="data\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="data\solutions.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

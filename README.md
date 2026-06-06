@@ -1,8 +1,10 @@
 # WinLog Analyzer
 
-Analyseur de logs Windows hybride : **agent local C# (.NET 8)** + **dashboard web**.
-Lit l'Observateur d'evenements, extrait les erreurs Critical/Error, traduit les PID en
-noms de process, et affiche pour chaque Event ID connu une **explication + remediation**.
+Application **desktop Windows** (WPF, .NET 8) qui analyse l'Observateur d'evenements,
+extrait les erreurs Critical/Error, traduit les PID en noms de process, et affiche pour
+chaque Event ID connu une **explication + remediation** issue d'une base de connaissance locale.
+
+Interface native (pas de navigateur, pas de serveur web).
 
 ## Architecture
 
@@ -10,12 +12,19 @@ noms de process, et affiche pour chaque Event ID connu une **explication + remed
 WinLogAnalyzer/
 ├── src/
 │   ├── WinLogAnalyzer.Core/     # Lib metier (lecture EventLog, mapping, dictionnaire)
-│   └── WinLogAnalyzer.Api/      # API REST self-hosted (127.0.0.1:5099) + frontend
-│       ├── data/solutions.json  # Base de connaissance Event ID -> solution
-│       └── wwwroot/             # Dashboard (HTML/CSS/JS modulaire)
-├── build.bat                    # Clean build -> dist/WinLogAnalyzer.Api.exe
-├── run.bat                      # Lance l'agent en admin
-└── .logs/                       # Logs build/exec (jamais commit)
+│   │   ├── Models/{EventEntry,Solution}.cs
+│   │   ├── Process/ProcessResolver.cs    # PID -> nom ("[termine]" si process mort)
+│   │   ├── Knowledge/SolutionProvider.cs # charge solutions.json
+│   │   └── Reader/EventLogService.cs     # lecture streaming Level 1+2
+│   └── WinLogAnalyzer.App/      # Interface WPF (MVVM)
+│       ├── data/solutions.json           # base de connaissance Event ID -> solution
+│       ├── Themes/Dark.xaml              # theme sombre
+│       ├── ViewModels/                   # MainViewModel, EventItemViewModel
+│       ├── Infrastructure/               # RelayCommand, converters
+│       └── MainWindow.xaml               # fenetre principale
+├── build.bat                    # Clean build -> dist/WinLogAnalyzer.exe
+├── run.bat                      # Lance l'app en admin
+└── .logs/                       # Logs build (jamais commit)
 ```
 
 ## Prerequis
@@ -27,21 +36,22 @@ WinLogAnalyzer/
 
 ```bat
 build.bat        :: KILL -> CLEAN -> publish single-file -> VERIFY
-run.bat          :: lance dist\WinLogAnalyzer.Api.exe (admin)
+run.bat          :: lance dist\WinLogAnalyzer.exe (admin)
 ```
 
-Le navigateur s'ouvre sur `http://127.0.0.1:5099`.
+L'application s'ouvre et analyse automatiquement le journal System au demarrage.
 
-## API
+## Utilisation
 
-| Endpoint | Description |
-|----------|-------------|
-| `GET /api/events?log=System&max=100` | Erreurs critiques (log: System/Application/Security, max 1..1000) |
-| `GET /api/health` | Statut agent + taille dictionnaire |
+- **Journal** : System / Application / Security.
+- **Nombre max** : 1 a 1000 erreurs.
+- **Filtre** : recherche live (Event ID, source, message, titre solution).
+- **Analyser** : relance la lecture.
+- Cliquer une carte la **deplie** : message brut + explication + remediation + liens doc.
 
 ## Ajouter une solution
 
-Editer `src/WinLogAnalyzer.Api/data/solutions.json` — **aucune recompilation** :
+Editer `src/WinLogAnalyzer.App/data/solutions.json` — **aucune recompilation du code** :
 
 ```json
 "1234": {
@@ -53,16 +63,13 @@ Editer `src/WinLogAnalyzer.Api/data/solutions.json` — **aucune recompilation**
 }
 ```
 
-La cle = Event ID. `severity` : `critical | error | warning | info` (pilote la couleur).
-
-## Securite
-
-- API bind **127.0.0.1 uniquement** — jamais exposee sur le reseau.
-- Manifest `requireAdministrator` (lecture du log Security).
-- Donnees locales, jamais transmises.
+Cle = Event ID. `severity` : `critical | error | warning | info` (pilote la couleur).
+Rebuild (`build.bat`) pour copier le JSON mis a jour a cote du binaire.
 
 ## Notes techniques
 
 - Lecture **streaming** (`EventLogReader`) : pas de charge complete en RAM.
-- `EventRecord.ProcessId` = PID au moment de l'event. Si le process est mort -> `[termine]`.
-```
+- `EventRecord.ProcessId` = PID au moment de l'event. Process mort -> `[termine]`.
+- Lecture hors thread UI (Task.Run) : interface jamais figee.
+- Manifest `requireAdministrator` (lecture du log Security).
+- Donnees 100% locales, jamais transmises.
