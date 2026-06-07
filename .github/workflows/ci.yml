@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-test:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore src/WinLogAnalyzer.Core/WinLogAnalyzer.Core.csproj
+
+      - name: Build Core
+        run: dotnet build src/WinLogAnalyzer.Core/WinLogAnalyzer.Core.csproj -c Release --no-restore
+
+      - name: Build App
+        run: dotnet build src/WinLogAnalyzer.App/WinLogAnalyzer.App.csproj -c Release
+
+      - name: Test
+        run: dotnet test tests/WinLogAnalyzer.Tests/WinLogAnalyzer.Tests.csproj -c Release --logger "console;verbosity=normal"

@@ -284,12 +284,30 @@ public sealed class EventsViewModel : ObservableObject, IDisposable
         catch { return; }
         finally { e.EventRecord.Dispose(); }
 
-        Application.Current?.Dispatcher.Invoke(() =>
+        // Async (BeginInvoke) pour ne pas bloquer le thread du watcher ; rebuild coalesce
+        // pour absorber les rafales (un seul rebuild par fenetre de 300 ms).
+        Application.Current?.Dispatcher.BeginInvoke(() =>
         {
             _raw.Insert(0, entry);
             NewCount++;
-            Rebuild();
+            ScheduleRebuild();
         });
+    }
+
+    private System.Windows.Threading.DispatcherTimer? _rebuildTimer;
+
+    private void ScheduleRebuild()
+    {
+        if (_rebuildTimer is null)
+        {
+            _rebuildTimer = new System.Windows.Threading.DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(300)
+            };
+            _rebuildTimer.Tick += (_, _) => { _rebuildTimer!.Stop(); Rebuild(); };
+        }
+        _rebuildTimer.Stop();
+        _rebuildTimer.Start();
     }
 
     // ===== Export =====
@@ -348,7 +366,7 @@ public sealed class EventsViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(SolvedCount));
     }
 
-    private void Persist() => _settings.Save();
+    private void Persist() => _settings.SaveDebounced();
 
     public void Dispose()
     {

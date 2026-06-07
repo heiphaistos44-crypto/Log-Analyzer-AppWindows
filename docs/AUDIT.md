@@ -65,10 +65,16 @@ Légende sévérité : 🔴 critique · 🟠 moyen · 🟡 faible · 🟢 OK · 
 - **S6** DLL planting + fuite de handle → `LoadLibraryEx` System32 + handle caché.
 - **C1** Troncature des messages longs → buffer 8 Ko + retry 64 Ko.
 
-## Recommandations restantes (priorisées)
-1. **Q3** Tests unitaires sur la logique pure (décodeur, remédiation, dedup, corrélation).
-2. **C3/C4** Throttle de la surveillance temps réel + debounce de la sauvegarde des préférences.
-3. **Q4** CI GitHub Actions (build Release + tests).
+## Recommandations traitées (v1.7)
+1. ✅ **Q3** 31 tests unitaires (xUnit) : décodeur, IsFailure, RemediationEngine, EventGrouper,
+   Correlator, SolutionProvider, ResultCodeProvider, AppSettings. `tests/WinLogAnalyzer.Tests`.
+2. ✅ **C3** Surveillance temps réel : `Dispatcher.BeginInvoke` (non bloquant) + rebuild coalescé
+   (DispatcherTimer 300 ms) pour absorber les rafales.
+3. ✅ **C4** Préférences : `SaveDebounced()` (timer 600 ms) au lieu d'une écriture par toggle.
+4. ✅ **Q4** CI GitHub Actions (`.github/workflows/ci.yml`) : build Core+App + tests sur push/PR.
+
+## Recommandations restantes
+- C5 (course bénigne FSW) et P2 (volume Incidents) : non bloquants, à surveiller si montée en charge.
 
 ## Verdict
 Application **saine** : lecture seule, locale, sans secret ni réseau, gestion d'erreur robuste,

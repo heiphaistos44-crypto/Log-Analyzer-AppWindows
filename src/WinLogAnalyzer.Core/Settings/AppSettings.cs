@@ -59,6 +59,18 @@ public sealed class AppSettings
         }
     }
 
+    private System.Threading.Timer? _saveTimer;
+
+    /// <summary>
+    /// Sauvegarde differee : coalesce les rafales de modifications (toggles) en une seule
+    /// ecriture disque apres 600 ms d'inactivite.
+    /// </summary>
+    public void SaveDebounced()
+    {
+        _saveTimer ??= new System.Threading.Timer(_ => Save());
+        _saveTimer.Change(600, System.Threading.Timeout.Infinite);
+    }
+
     /// <summary>Journaux selectionnes (jamais vide : System par defaut).</summary>
     public IReadOnlyList<string> SelectedLogs()
     {
