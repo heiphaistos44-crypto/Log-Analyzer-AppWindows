@@ -12,9 +12,18 @@ public partial class EventsView : UserControl
 
     private void Hyperlink_RequestNavigate(object sender, RequestNavigateEventArgs e)
     {
+        // H11 — n'autoriser que les schémas http/https pour prévenir l'exécution de
+        // commandes arbitraires via des URI comme file://, javascript:, ms-settings:, etc.
+        var uri = e.Uri;
+        if (uri.Scheme != "http" && uri.Scheme != "https")
+        {
+            e.Handled = true;
+            return;
+        }
+
         try
         {
-            Process.Start(new ProcessStartInfo { FileName = e.Uri.AbsoluteUri, UseShellExecute = true });
+            Process.Start(new ProcessStartInfo { FileName = uri.AbsoluteUri, UseShellExecute = true });
         }
         catch (Exception ex)
         {

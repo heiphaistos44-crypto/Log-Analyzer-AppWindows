@@ -9,9 +9,33 @@ namespace WinLogAnalyzer.App.Infrastructure;
 /// </summary>
 public static class ActionRunner
 {
+    // H10 — liste blanche des outils autorisés (prévient l'exécution arbitraire de processus)
+    private static readonly HashSet<string> AllowedTools = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "services.msc",
+        "perfmon.msc",
+        "perfmon",
+        "eventvwr.msc",
+        "mdsched.exe",
+        "taskmgr.exe",
+        "resmon.exe",
+        "compmgmt.msc",
+        "devmgmt.msc",
+        "diskmgmt.msc"
+    };
+
     /// <summary>Lance un outil sans confirmation (ouverture d'une console d'admin).</summary>
     public static void Open(string fileName, string? args = null)
     {
+        // Vérification whitelist : seul le nom de fichier (sans chemin) est comparé
+        var name = System.IO.Path.GetFileName(fileName);
+        if (!AllowedTools.Contains(name) && !AllowedTools.Contains(fileName))
+        {
+            MessageBox.Show($"Outil '{fileName}' non autorisé.",
+                "WinLog Analyzer", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
         try
         {
             Process.Start(new ProcessStartInfo
